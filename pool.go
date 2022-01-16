@@ -14,7 +14,7 @@ type WorkerPool struct {
 func NewWorkerPool(count int) *WorkerPool {
 	return &WorkerPool{
 		Count:  count,
-		Sender: make(chan Shop, count),
+		Sender: make(chan Shop, count*2),
 		Ender:  make(chan bool),
 	}
 }
@@ -27,6 +27,7 @@ func (p *WorkerPool) Run(wg *sync.WaitGroup, handler func(author Shop)) {
 		case shop = <-p.Sender:
 			handler(shop)
 		case <-p.Ender:
+			//fmt.Println(<- p.Sender)
 			log.Println("I am finish")
 			return
 		}

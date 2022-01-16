@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -13,9 +14,14 @@ func GetRowId(db *sql.DB, selectQuery, insertQuery string, args ...interface{}) 
 	var id int64
 	err := row.Scan(&id)
 	if err != nil {
-		log.Println(err)
-		result, err := db.Exec(insertQuery, args)
+		if strings.HasPrefix(err.Error(), "no rows in") {
+			log.Println(err)
+		}
+		result, err := db.Exec(insertQuery, args...)
 		if err != nil {
+			if strings.HasPrefix(err.Error(), "Error 1062") {
+				return GetRowId(db, selectQuery, insertQuery, args...)
+			}
 			log.Fatalln(err)
 		}
 		id, err = result.LastInsertId()
@@ -38,80 +44,53 @@ func main() {
 	for i := 0; i < pool.Count; i++ {
 		fmt.Println("start")
 		go pool.Run(&wg, func(shop Shop) {
-
-			row := db.QueryRow("SELECT id FROM shop_types WHERE name = ?", shop.Type)
-			var shopTypeId int64
-			err := row.Scan(&shopTypeId)
-			if err != nil {
-				log.Println(err)
-				result, err := db.Exec("INSERT INTO shop_types(name) VALUE (?)", shop.Type)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-				shopTypeId, err = result.LastInsertId()
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			}
+			shopTypeId := GetRowId(db, "SELECT id FROM shop_types WHERE name = ?",
+				"INSERT INTO shop_types(name) VALUE (?)", shop.Type)
 			_, err = db.Exec("INSERT INTO shops VALUE (?, ?, ?, ?, ?, ?)",
 				shop.Id, shop.Name, shopTypeId, shop.Image, shop.WorkingHours.Opening,
 				shop.WorkingHours.Closing)
+
 			if err != nil {
 				log.Println(err)
-				return
 			}
-			for _, prod := range shop.Menu {
-				row := db.QueryRow("SELECT id FROM prod_types WHERE name = ?", prod.Type)
-				fmt.Println(prod.Type)
-				var prodTypeId int64
-				err := row.Scan(&prodTypeId)
-				if err != nil {
-					log.Println("Product type: ", err)
-					result, err := db.Exec(
-						"INSERT INTO prod_types(name) VALUE (?)",
-						prod.Type)
-					if err != nil {
-						log.Println(err)
-						return
-					}
-					prodTypeId, err = result.LastInsertId()
-					if err != nil {
-						log.Println(err)
-						return
-					}
-				}
 
+			for _, prod := range shop.Menu {
+				prodTypeId := GetRowId(db, "SELECT id FROM prod_types WHERE name = ?",
+					"INSERT INTO prod_types(name) VALUE (?)", prod.Type)
 				_, err = db.Exec(
 					"INSERT INTO products VALUE (?, ?, ?, ?, ?, ?)",
 					prod.Id, prod.Name, prod.Price, prod.Image, prodTypeId, shop.Id)
+
+				if err != nil {
+					log.Println(err)
+				}
+
 				for _, ing := range prod.Ingredients {
-					row := db.QueryRow("SELECT id FROM ingredients WHERE name = ?", ing)
-					var ingId int64
-					err := row.Scan(prodTypeId)
-					if err != nil {
-						result, err := db.Exec("INSERT INTO ingredients(name) VALUE (?)", ing)
-						if err != nil {
-							log.Println(err)
-							return
-						}
-						ingId, err = result.LastInsertId()
-						if err != nil {
-							log.Println(err)
-							return
-						}
-					}
+					ingId := GetRowId(db, "SELECT id FROM ingredients WHERE name = ?",
+						"INSERT INTO ingredients(name) VALUE (?)", ing)
 					_, err = db.Exec("INSERT INTO prod_ingredient VALUE (?, ?)", prod.Id, ingId)
+
+					if err != nil {
+						log.Println(err)
+					}
 				}
 			}
 		})
 	}
-	shop, err := NewFromJson("1.json")
-	if err != nil {
-		fmt.Println(err)
+	shops := [7]Shop{}
+	var shop Shop
+	for i := 1; i < 8; i++ {
+		shop, err = NewFromJson(fmt.Sprintf("shops/%v.json", i))
+		if err != nil {
+			log.Println(err)
+		}
+		shops[i-1] = shop
 	}
-	pool.Sender <- shop
+
+	for _, shop = range shops {
+		pool.Sender <- shop
+	}
+
 	pool.Stop()
 	wg.Wait()
 }
