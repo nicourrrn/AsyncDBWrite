@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"os"
 	"strings"
 	"sync"
 )
@@ -14,7 +16,7 @@ func GetRowId(db *sql.DB, selectQuery, insertQuery string, args ...interface{}) 
 	var id int64
 	err := row.Scan(&id)
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "no rows in") {
+		if errors.Is(err, sql.ErrNoRows) {
 			log.Println(err)
 		}
 		result, err := db.Exec(insertQuery, args...)
@@ -22,7 +24,6 @@ func GetRowId(db *sql.DB, selectQuery, insertQuery string, args ...interface{}) 
 			if strings.HasPrefix(err.Error(), "Error 1062") {
 				return GetRowId(db, selectQuery, insertQuery, args...)
 			}
-			log.Fatalln(err)
 		}
 		id, err = result.LastInsertId()
 		if err != nil {
@@ -35,7 +36,7 @@ func GetRowId(db *sql.DB, selectQuery, insertQuery string, args ...interface{}) 
 func main() {
 	pool := NewWorkerPool(4)
 	wg := sync.WaitGroup{}
-	db, err := sql.Open("mysql", "sorokin:1234@/test")
+	db, err := sql.Open("mysql", "student:1234@/fullstack_shop")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -77,14 +78,22 @@ func main() {
 			}
 		})
 	}
-	shops := [7]Shop{}
+	shops := make([]Shop, 0)
 	var shop Shop
-	for i := 1; i < 8; i++ {
-		shop, err = NewFromJson(fmt.Sprintf("shops/%v.json", i))
+	dir, err := os.Open("shops")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	files, err := dir.Readdir(-1)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for _, i := range files {
+		shop, err = NewFromJson("shops/" + i.Name())
 		if err != nil {
 			log.Println(err)
 		}
-		shops[i-1] = shop
+		shops = append(shops, shop)
 	}
 
 	for _, shop = range shops {
