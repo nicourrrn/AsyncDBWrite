@@ -1,0 +1,36 @@
+{
+	"info": {
+		"_postman_id": "6e5f5579-f65a-4962-9e37-70fbface61ee",
+		"name": "shop",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "localhost:8080/upload",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 1,\n    \"name\": \"Pizza Club\",\n    \"type\": \"restaurant\",\n    \"image\": \"https://play-lh.googleusercontent.com/qMewibe3u5Wvq3fBf3Ca3_QItjHCOKeGrOAzVXWxqzgRpMwxYlD5CA6M2M5L78SwNA\",\n    \"workingHours\": {\n        \"opening\": \"09:00\",\n        \"closing\": \"20:00\"\n    },\n    \"menu\": [\n        {\n            \"id\": 1,\n            \"name\": \"Pizza Pepperoni with tomatoes\",\n            \"price\": 6.07,\n            \"image\": \"https://roll-club.kh.ua/wp-content/uploads/2021/04/okean-1.jpg.webp\",\n            \"type\": \"pizza\",\n            \"ingredients\": [\n                \"Mozarella\",\n                \"Peperoni\",\n                \"Tomatoes\",\n                \"BBQ sauce\"\n            ]\n        },\n        {\n            \"id\": 2,\n            \"name\": \"Pizza Texas\",\n            \"price\": 2.5,\n            \"image\": \"https://roll-club.kh.ua/wp-content/uploads/2021/04/4-mjasa-1.jpg.webp\",\n            \"type\": \"pizza\",\n            \"ingredients\": [\n                \"Corn\",\n                \"Onion\",\n                \"Mushrooms\",\n                \"Bavarian sausages\",\n                \"Mozarella\",\n                \"BBQ sauce\"\n            ]\n        },\n        {\n            \"id\": 3,\n            \"name\": \"Pizza Hawaiian\",\n            \"price\": 7.85,\n            \"image\": \"https://roll-club.kh.ua/wp-content/uploads/2021/04/rostbif-v-tunce-1.jpg.webp\",\n            \"type\": \"pizza\",\n            \"ingredients\": [\n                \"Chicken\",\n                \"Pineapple\",\n                \"Mozarella\"\n            ]\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/upload",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"upload"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
