@@ -8,6 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
@@ -94,6 +95,12 @@ func main() {
 		request.Body.Close()
 		pool.Sender <- shop
 		writer.WriteHeader(http.StatusOK)
+	})
+	http.HandleFunc("/exit", func(writer http.ResponseWriter, request *http.Request) {
+		pool.Stop()
+		wg.Wait()
+		writer.WriteHeader(http.StatusContinue)
+		os.Exit(1)
 	})
 	//shops := make([]Shop, 0)
 	//var shop Shop
