@@ -2,11 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
-	"os"
+	"net/http"
 	"strings"
 	"sync"
 )
@@ -78,28 +79,44 @@ func main() {
 			}
 		})
 	}
-	shops := make([]Shop, 0)
-	var shop Shop
-	dir, err := os.Open("shops")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	files, err := dir.Readdir(-1)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	for _, i := range files {
-		shop, err = NewFromJson("shops/" + i.Name())
-		if err != nil {
-			log.Println(err)
+
+	http.HandleFunc("/upload", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			http.Error(writer, "not supported", http.StatusBadRequest)
+			return
 		}
-		shops = append(shops, shop)
-	}
-
-	for _, shop = range shops {
+		var shop Shop
+		err := json.NewDecoder(request.Body).Decode(&shop)
+		if err != nil {
+			http.Error(writer, "not parsed", http.StatusBadRequest)
+			return
+		}
+		request.Body.Close()
 		pool.Sender <- shop
-	}
-
+		writer.WriteHeader(http.StatusOK)
+	})
+	//shops := make([]Shop, 0)
+	//var shop Shop
+	//dir, err := os.Open("shops")
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//files, err := dir.Readdir(-1)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//for _, i := range files {
+	//	shop, err = NewFromJson("shops/" + i.Name())
+	//	if err != nil {
+	//		log.Println(err)
+	//	}
+	//	shops = append(shops, shop)
+	//}
+	//
+	//for _, shop = range shops {
+	//	pool.Sender <- shop
+	//}
+	log.Println(http.ListenAndServe("localhost:8080", nil))
 	pool.Stop()
 	wg.Wait()
 }
